@@ -1,0 +1,6 @@
+<img alt="OMG~CUTEST KITTEN PIC EVER!!! The Shepherd | The 100 Most Important Cat Pictures Of All Time" class="_mi _3k _2j _3w" src="https://i.pinimg.com/236x/40/f4/b5/40f4b5909deb62895ea79971cb54e6f4.jpg" srcset="https://i.pinimg.com/236x/40/f4/b5/40f4b5909deb62895ea79971cb54e6f4.jpg 1x, https://i.pinimg.com/474x/40/f4/b5/40f4b5909deb62895ea79971cb54e6f4.jpg 2x, https://i.pinimg.com/736x/40/f4/b5/40f4b5909deb62895ea79971cb54e6f4.jpg 3x, https://s-media-cache-ak0.pinimg.com/originals/40/f4/b5/40f4b5909deb62895ea79971cb54e6f4.jpg 4x">
+
+Note that the class is given as "_mi _3k _2j _3w"
+
+
+Pinterest seems to have between 15 and 18 pics associated with the page at a time. It changes which ones are attached to _mi _3k _2j _3w objects while you scroll. So I think I have to keep a list of the ones we've done before. And since elements become stale, I have to extract the info I want after each change of frame.
