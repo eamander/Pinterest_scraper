@@ -102,7 +102,10 @@ class PinterestScraper(object):
 
 
 def main():
-    my_scraper = PinterestScraper(login_name=sys.argv[1], login_pass=sys.argv[2])
+    try:
+        my_scraper = PinterestScraper(login_name=sys.argv[1], login_pass=sys.argv[2], chromedriver_path=sys.argv[5])
+    except IndexError:
+        my_scraper = PinterestScraper(login_name=sys.argv[1], login_pass=sys.argv[2])
     try:
         my_scraper.set_destination_folder(sys.argv[4])
     except IndexError:
