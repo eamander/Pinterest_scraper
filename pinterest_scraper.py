@@ -62,6 +62,8 @@ class PinterestScraper(object):
 
     def set_destination_folder(self, path):
         self.path = path
+        if not os.path.exists(self.path):
+            os.mkdir(self.path)
         self.scraped_list = os.listdir(self.path)
 
     def scrape_pictures(self, query, n_pgdn=500):
@@ -69,19 +71,26 @@ class PinterestScraper(object):
         if ' ' in query:
             query.replace(' ', '  ')  # Pinterest likes to bring up a history
                                       # instead of letting you type your first space
-        search_input = self.driver.find_element_by_class_name('searchInput')
+        search_input = self.driver.find_element_by_class_name('SearchBoxInput')
         search_input.send_keys(query)
 
         # We have to reacquire the element after the page changes at all
-        search_input = self.driver.find_element_by_class_name('searchInput')
+        search_input = self.driver.find_element_by_class_name('SearchBoxInput')
         search_input.send_keys(Keys.RETURN)
 
         sleep(3)  # this is just a hack to get the page to load properly
         # cur_pgdn = 0
         for i in range(n_pgdn):
-            pics_list = self.driver.find_elements_by_class_name('_mi')
+            pics_list = self.driver.find_elements_by_class_name('_mj')
             pics_list = pics_list[1:]
-            pic_url_list = [pic_elem.get_attribute('srcset').split(' ')[-2] for pic_elem in pics_list]
+            pic_url_list = []
+            for pic_elem in pics_list:
+                try:
+                    pic_url_list.append(pic_elem.get_attribute('srcset').split(' ')[-2])
+                except IndexError:
+                    pass
+            # pic_url_list = [pic_elem.get_attribute('srcset').split(' ')[-2] for pic_elem in pics_list]
+            # Pinterest image elements now include invalid ones every now and then.
             for pic_url in pic_url_list:
                 pic_name = pic_url.split('/')[-1]
                 if pic_name not in self.scraped_list:
@@ -101,13 +110,13 @@ class PinterestScraper(object):
             # cur_pgdn += 1
 
 
-def main():
+def main(argv):
     try:
-        my_scraper = PinterestScraper(login_name=sys.argv[1], login_pass=sys.argv[2], chromedriver_path=sys.argv[5])
+        my_scraper = PinterestScraper(login_name=argv[1], login_pass=argv[2], chromedriver_path=argv[5])
     except IndexError:
-        my_scraper = PinterestScraper(login_name=sys.argv[1], login_pass=sys.argv[2])
+        my_scraper = PinterestScraper(login_name=argv[1], login_pass=argv[2])
     try:
-        my_scraper.set_destination_folder(sys.argv[4])
+        my_scraper.set_destination_folder(argv[4])
     except IndexError:
         my_scraper.set_destination_folder(os.path.join(os.curdir, "scraped_images"))
 
@@ -115,8 +124,8 @@ def main():
     my_scraper.login()
     sleep(3.2)
 
-    my_scraper.scrape_pictures(sys.argv[3])
+    my_scraper.scrape_pictures(argv[3])
 
 
-if __name__ is "__main__":
-    main()
+if __name__ == "__main__":
+    main(sys.argv)
