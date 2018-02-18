@@ -126,6 +126,7 @@ def main(argv):
 
     my_scraper.scrape_pictures(argv[3])
 
-
+'''
 if __name__ == "__main__":
     main(sys.argv)
+'''

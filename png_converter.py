@@ -16,6 +16,9 @@ def png_convert(src):
 def bad_jpg_remover(src):
     images = [image for image in os.listdir(src) if image[-4:] == '.jpg']
     for image in images:
-        im = plt.imread(os.path.join(src, image), format='jpeg')
-        if im.shape[-1] == 4:
+        try:
+            im = plt.imread(os.path.join(src, image), format='jpeg')
+            if im.shape[-1] == 4:
+                os.unlink(os.path.join(src, image))
+        except OSError:
             os.unlink(os.path.join(src, image))
