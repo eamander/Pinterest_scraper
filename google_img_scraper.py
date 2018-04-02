@@ -9,6 +9,8 @@ import requests
 from requests.exceptions import SSLError, ConnectionError
 import sys
 import json
+from PIL import Image
+import io
 
 '''
 Here's my S.O.P. for getting the original images:
@@ -28,6 +30,8 @@ class GoogleImgScraper(object):
         self.driver.get("https://www.google.com/imghp?hl=en&tab=wi&authuser=0")
         self.path = ''
         self.scraped_list = []
+        self.scraped_list_content = []
+        self.scraped_list_fullpath = []
 
         self.driver.implicitly_wait(30)
 
@@ -37,7 +41,31 @@ class GoogleImgScraper(object):
             os.mkdir(self.path)
         self.scraped_list = os.listdir(self.path)
 
-    def scrape_pictures(self, query, n_pgdn=500, name_with_query=False):
+    def set_check_folders(self, list_path):
+        self.scraped_list_fullpath = [*map(lambda f: os.path.join(self.path, f), self.scraped_list)]
+
+        for path in list_path:
+            if os.path.exists(path):
+                self.scraped_list_fullpath.extend([*map(lambda f: os.path.join(path, f), os.listdir(path))])
+            else:
+                UserWarning("Directory not found at path {}".format(path))
+
+    def compare_picture(self, pic,  check_old_images=False):
+        if not check_old_images:
+            return True
+        else:
+            if pic in self.scraped_list_content:
+                return False
+            else:
+                return True
+
+    def open_existing_pics(self):
+        self.scraped_list_content = []
+        for path in self.scraped_list_fullpath:
+            img = Image.open(path)
+            self.scraped_list_content.append(img)
+
+    def scrape_pictures(self, query, n_pgdn=500, name_with_query=False, check_old_images=False):
 
         search_input = self.driver.find_element_by_class_name('gsfi')
         search_input.send_keys(query)
@@ -50,9 +78,9 @@ class GoogleImgScraper(object):
         # cur_pgdn = 0
         for i in range(n_pgdn):
             if name_with_query:
-                self.scrape_cur_view(query)
+                self.scrape_cur_view(query, check_old_images=check_old_images)
             else:
-                self.scrape_cur_view()
+                self.scrape_cur_view(check_old_images=check_old_images)
 
             body = self.driver.find_element_by_css_selector('body')
             for j in range(10):
@@ -61,7 +89,7 @@ class GoogleImgScraper(object):
             sleep(.3)  # this give the page time to actually SCROLL!
             # cur_pgdn += 1
 
-    def scrape_cur_view(self, names=None):
+    def scrape_cur_view(self, names=None, check_old_images=False):
         pics_list = self.driver.find_elements_by_class_name('rg_meta')
         pic_url_list = []
         pic_name_index = 0
@@ -88,38 +116,49 @@ class GoogleImgScraper(object):
                         pic_name = split[1]
                 if 'jpg' not in pic_name:
                     pic_name = pic_name + '.jpg'
-            if pic_name not in self.scraped_list:
-                try:
-                    pic = requests.get(pic_url)
-                    file = open(os.path.join(self.path, pic_name), 'wb')
-                    file.write(pic.content)
-                    file.close()
-                    self.scraped_list.append(pic_name)
-                    sleep(abs(normalvariate(abs(normalvariate(.5, 0.2)), abs(normalvariate(0.4, 0.1)))))
-                except (SSLError, ConnectionError):
-                    pic_name_index -= 1
+            try:
+                pic = requests.get(pic_url)
+                pic = Image.open(io.BytesIO(pic.content))
+            except (SSLError, ConnectionError):
+                pic_name_index -= 1
+                pic = False
+            if pic:
+                add_pic = self.compare_picture(pic, check_old_images)  # Just see if we should add the picture.
+                # Then, if we should add it, look for a place to add it.
             else:
-                flag = True
-                count = 0
-                pic_name_orig = pic_name
-                while flag:
-                    pic = requests.get(pic_url)
-                    if os.path.exists(os.path.join(self.path, pic_name)):
-                        file = open(os.path.join(self.path, pic_name), 'rb')
-                        file_content = file.read()
-                        if pic.content == file_content:
-                            flag = False
-                        else:
-                            pic_name = pic_name_orig[:-4] + '_{}'.format(count) + '.jpg'
-                            count += 1
-                    else:
-                        pic = requests.get(pic_url)
-                        file = open(os.path.join(self.path, pic_name), 'wb')
-                        file.write(pic.content)
-                        file.close()
-                        self.scraped_list.append(pic_name)
-                        sleep(abs(normalvariate(abs(normalvariate(.5, 0.2)), abs(normalvariate(0.4, 0.1)))))
-                        flag = False
+                add_pic = False
+            if add_pic:  # Here, just look for a valid name.
+                while os.path.exists(os.path.join(self.path, pic_name)):  # Find the next good file name
+                    pic_name = pic_name[:-5] + "{}".format(pic_name_index) + ".jpg"
+                    pic_name_index += 1
+                pic.save(os.path.join(self.path, pic_name))
+                # file = open(os.path.join(self.path, pic_name), 'wb')
+                # file.write(pic.content)
+                # file.close()
+                self.scraped_list.append(pic_name)
+                self.scraped_list_content.append(pic)
+                sleep(abs(normalvariate(abs(normalvariate(.5, 0.2)), abs(normalvariate(0.4, 0.1)))))
+            # else:  # Here we check to see if the image in question is one we already have.
+            #     flag = True  # We shouldn't need to do this if we are good at determining if we should add a pic above
+            #     count = 0
+            #     pic_name_orig = pic_name
+            #     while flag:
+            #         if os.path.exists(os.path.join(self.path, pic_name)):
+            #             file = open(os.path.join(self.path, pic_name), 'rb')
+            #             file_content = file.read()
+            #             if pic.content == file_content:
+            #                 flag = False
+            #             else:
+            #                 pic_name = pic_name_orig[:-4] + '_{}'.format(count) + '.jpg'
+            #                 count += 1
+            #         else:
+            #             pic = requests.get(pic_url)
+            #             file = open(os.path.join(self.path, pic_name), 'wb')
+            #             file.write(pic.content)
+            #             file.close()
+            #             self.scraped_list.append(pic_name)
+            #             sleep(abs(normalvariate(abs(normalvariate(.5, 0.2)), abs(normalvariate(0.4, 0.1)))))
+            #             flag = False
 
 
 def main(argv):

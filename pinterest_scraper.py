@@ -66,7 +66,18 @@ class PinterestScraper(object):
             os.mkdir(self.path)
         self.scraped_list = os.listdir(self.path)
 
-    def scrape_pictures(self, query, n_pgdn=500):
+    def set_check_folders(self, list_path):
+        self.scraped_list = []
+        self.set_destination_folder(self.path)
+        for path in list_path:
+            if os.path.exists(path):
+                self.scraped_list.extend(os.listdir(path))
+            else:
+                UserWarning("Directory not found at path {}".format(path))
+
+    def scrape_pictures(self, query, n_pgdn=500, check_folder_list=[]):
+
+        self.set_check_folders(check_folder_list)
 
         if ' ' in query:
             query.replace(' ', '  ')  # Pinterest likes to bring up a history
