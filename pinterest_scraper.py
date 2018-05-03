@@ -6,7 +6,7 @@ from random import normalvariate
 from time import sleep
 import os
 import requests
-import sys
+# import sys
 
 '''
 Here's my S.O.P. for getting the original images:
@@ -15,11 +15,6 @@ Here's my S.O.P. for getting the original images:
 2.1: Get the names of the files too
 3: Save each unique picture
 '''
-
-# orig_lst = []
-# for i in pics_list[1:]:  # The first pic is always your profile pic
-#     # Do other things here instead
-#     orig_lst.append(i.get_attribute('srcset').split()[-2])
 
 
 class PinterestScraper(object):

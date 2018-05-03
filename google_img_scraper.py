@@ -41,7 +41,7 @@ class GoogleImgScraper(object):
             os.mkdir(self.path)
         self.scraped_list = os.listdir(self.path)
 
-    def set_check_folders(self, list_path):
+    def set_check_folders(self, list_path=[]):
         self.scraped_list_fullpath = [*map(lambda f: os.path.join(self.path, f), self.scraped_list)]
 
         for path in list_path:
@@ -66,6 +66,9 @@ class GoogleImgScraper(object):
             self.scraped_list_content.append(img)
 
     def scrape_pictures(self, query, n_pgdn=500, name_with_query=False, check_old_images=False):
+
+        if check_old_images and not self.scraped_list_content:
+            self.open_existing_pics()
 
         search_input = self.driver.find_element_by_class_name('gsfi')
         search_input.send_keys(query)
@@ -92,7 +95,12 @@ class GoogleImgScraper(object):
     def scrape_cur_view(self, names=None, check_old_images=False):
         pics_list = self.driver.find_elements_by_class_name('rg_meta')
         pic_url_list = []
-        pic_name_index = 0
+        if names is not None:  # This makes sure all new pics show up after old pics.
+            indices = [int(n.split('_')[1].split('.')) for n in self.scraped_list]
+            indices.sort(reverse=True)
+            pic_name_index = indices[0]
+        else:
+            pic_name_index = 0
         # To update this, find a better way to pick off a good file name
         for pic_elem in pics_list:
             try:
@@ -119,7 +127,7 @@ class GoogleImgScraper(object):
             try:
                 pic = requests.get(pic_url)
                 pic = Image.open(io.BytesIO(pic.content))
-            except (SSLError, ConnectionError):
+            except (SSLError, ConnectionError, OSError):
                 pic_name_index -= 1
                 pic = False
             if pic:
@@ -129,15 +137,15 @@ class GoogleImgScraper(object):
                 add_pic = False
             if add_pic:  # Here, just look for a valid name.
                 while os.path.exists(os.path.join(self.path, pic_name)):  # Find the next good file name
-                    pic_name = pic_name[:-5] + "{}".format(pic_name_index) + ".jpg"
+                    pic_name = pic_name.split("_")[0] + "_{}".format(pic_name_index) + ".jpg"
                     pic_name_index += 1
-                pic.save(os.path.join(self.path, pic_name))
-                # file = open(os.path.join(self.path, pic_name), 'wb')
-                # file.write(pic.content)
-                # file.close()
-                self.scraped_list.append(pic_name)
-                self.scraped_list_content.append(pic)
-                sleep(abs(normalvariate(abs(normalvariate(.5, 0.2)), abs(normalvariate(0.4, 0.1)))))
+                try:
+                    pic.save(os.path.join(self.path, pic_name))
+                    self.scraped_list.append(pic_name)
+                    self.scraped_list_content.append(pic)
+                except OSError:
+                    pic_name_index -= 1
+                sleep(abs(normalvariate(abs(normalvariate(.25, 0.1)), abs(normalvariate(0.3, 0.1)))))
             # else:  # Here we check to see if the image in question is one we already have.
             #     flag = True  # We shouldn't need to do this if we are good at determining if we should add a pic above
             #     count = 0
